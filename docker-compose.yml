@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=n8nuser
+      - POSTGRES_PASSWORD=n8nDefaultDevPassword123! # Documented as is, recommend changing
+      - POSTGRES_DB=n8ndb
+    volumes:
+      - postgres_data_vol:/var/lib/postgresql/data
+    networks:
+      - n8n-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8nuser -d n8ndb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    image: n8nio/n8n
+    restart: always
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8ndb
+      - DB_POSTGRESDB_USER=n8nuser
+      - DB_POSTGRESDB_PASSWORD=n8nDefaultDevPassword123!
+      - GENERIC_TIMEZONE=America/Chicago # Placeholder - USER MUST CHANGE
+      - WEBHOOK_URL=http://100.113.4.39:5678 # Placeholder - USER MUST CHANGE
+      # - N8N_DIAGNOSTICS_ENABLED=false # Uncomment to disable telemetry
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - n8n-network
+
+networks:
+  n8n-network:
+    driver: bridge
+
+volumes:
+  postgres_data_vol:
